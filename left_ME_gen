@@ -1,0 +1,58 @@
+"""
+ME 405 California Polytechnic State University - San Luis Obispo
+updated 12/11/2025
+
+@author: Jireh and Aubrey
+
+Task for creating and running motor and encoder objects for left motor
+
+"""
+
+from pyb import Pin, Timer, ADC, UART, repl_uart, ExtInt
+import time
+import motor
+import encoder
+
+def left_MOEN_gen(Shares):
+
+    state2 = 0
+    my_TLshare, my_PLshare, my_VLshare, run_flag, L_Effort, Done = Shares
+
+    while True:
+        if state2 == 0:
+            left_enc = encoder.Encoder(4, Pin.cpu.B6, Pin.cpu.B7, period=0xFFFF)
+            left_motor = motor.Motor(Pin.cpu.C6, Pin.cpu.B8, Pin.cpu.B9, timer_id=3, timer_ch=1)
+            left_enc.zero()
+            state2 = 1
+            yield state2  # added to speed up timing
+
+
+        elif state2 == 1:
+            state2 = 2 if run_flag.get() else 1
+            left_enc.zero()
+            yield state2
+
+        elif state2 == 2:  # Start up the left motor and get reference point for time
+            left_motor.enable()
+            Ltstart = time.ticks_ms()
+            state2 = 3
+            yield state2
+
+        elif state2 == 3:  # Gather encoder data and time data, put them in PLshare, VLshare, and TLshare, respectively
+            left_motor.set_effort(L_Effort.get())
+            left_enc.update()
+
+            my_PLshare.put(left_enc.get_position())
+            my_VLshare.put(left_enc.get_velocity())
+
+            Lt = time.ticks_ms() - Ltstart
+            my_TLshare.put(Lt)
+
+            if not run_flag.get():  # checks if not run so if not true
+                left_motor.disable()
+                Done.put(1)
+                state2 = 1  # sends back to beginning
+
+        yield state2
+
+
