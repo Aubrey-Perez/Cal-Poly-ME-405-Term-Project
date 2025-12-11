@@ -1,0 +1,56 @@
+"""
+ME 405 California Polytechnic State University - San Luis Obispo
+updated 12/11/2025
+
+@author: Jireh and Aubrey
+
+Task for creating and running motor and encoder objects for right motor
+
+"""
+
+from pyb import Pin, Timer, ADC, UART, repl_uart, ExtInt
+import time
+import motor
+import encoder
+
+def right_MOEN_gen(Shares):
+    state3 = 0
+    my_TRshare, my_PRshare, my_VRshare, run_flag, R_Effort, Done = Shares
+
+    while True:
+        if state3 == 0:
+
+            right_enc = encoder.Encoder(2, Pin.cpu.A0, Pin.cpu.A1, period=0xFFFF)
+            right_motor = motor.Motor(Pin.cpu.C8, Pin.cpu.A8, Pin.cpu.C0, timer_id=3,
+                                      timer_ch=3)
+            right_enc.zero()
+            state3 = 1
+            yield state3
+
+        elif state3 == 1:
+            state3 = 2 if run_flag.get() else 1
+            right_enc.zero()
+            yield state3
+
+        elif state3 == 2:  # Start up the left motor and get reference point for tim3
+            right_motor.enable()
+            Rtstart = time.ticks_ms()
+            state3 = 3
+            yield state3
+
+        elif state3 == 3:  # Gather encoder data and time data, put them in PLshare, VLshare, and TLshare, respectively
+            right_motor.set_effort(R_Effort.get())
+            right_enc.update()
+            my_PRshare.put(right_enc.get_position())
+            my_VRshare.put(right_enc.get_velocity())
+            Rt = time.ticks_ms() - Rtstart
+            my_TRshare.put(Rt)
+
+            if not run_flag.get():
+                right_motor.disable()
+                Done.put(1)
+                state3 = 1
+            else:
+                state3 = 3
+
+        yield state3
