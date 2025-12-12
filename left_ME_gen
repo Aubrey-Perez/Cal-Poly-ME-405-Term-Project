@@ -19,7 +19,7 @@ def left_MOEN_gen(Shares):
     my_TLshare, my_PLshare, my_VLshare, run_flag, L_Effort, Done = Shares
 
     while True:
-        if state2 == 0:
+        if state2 == 0: # create motor and encoder objects
             left_enc = encoder.Encoder(4, Pin.cpu.B6, Pin.cpu.B7, period=0xFFFF)
             left_motor = motor.Motor(Pin.cpu.C6, Pin.cpu.B8, Pin.cpu.B9, timer_id=3, timer_ch=1)
             left_enc.zero()
@@ -27,7 +27,7 @@ def left_MOEN_gen(Shares):
             yield state2  # added to speed up timing
 
 
-        elif state2 == 1:
+        elif state2 == 1: # keep motor at zero unil run flag set
             state2 = 2 if run_flag.get() else 1
             left_enc.zero()
             yield state2
