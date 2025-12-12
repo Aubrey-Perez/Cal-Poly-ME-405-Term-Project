@@ -18,8 +18,7 @@ def right_MOEN_gen(Shares):
     my_TRshare, my_PRshare, my_VRshare, run_flag, R_Effort, Done = Shares
 
     while True:
-        if state3 == 0:
-
+        if state3 == 0: # create motor and encoder objects
             right_enc = encoder.Encoder(2, Pin.cpu.A0, Pin.cpu.A1, period=0xFFFF)
             right_motor = motor.Motor(Pin.cpu.C8, Pin.cpu.A8, Pin.cpu.C0, timer_id=3,
                                       timer_ch=3)
@@ -27,7 +26,7 @@ def right_MOEN_gen(Shares):
             state3 = 1
             yield state3
 
-        elif state3 == 1:
+        elif state3 == 1: # keep motor off until run flag is set
             state3 = 2 if run_flag.get() else 1
             right_enc.zero()
             yield state3
@@ -46,7 +45,7 @@ def right_MOEN_gen(Shares):
             Rt = time.ticks_ms() - Rtstart
             my_TRshare.put(Rt)
 
-            if not run_flag.get():
+            if not run_flag.get(): # if run flag is unset, turn off motor
                 right_motor.disable()
                 Done.put(1)
                 state3 = 1
